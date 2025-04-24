@@ -4,24 +4,23 @@
  
 Dans un repertoire cloner le repo. On suppose que vous souhaiter le cloner dans Documents.
 
+```bash
 cd ~/Documents
-
 git clone https://github.com/njaraT/wordle_solver_Fenitra_Josue.git
-
+```
 # Compilation :
 
+```bash
 cd ~/Documents/wordle_solver_Fenitra_Josue
-
 mkdir bin
-
 gcc -o bin/main -I include/ src/getBDD.c src/main.c
-
+```
 # Utilisation :
 
+```bash
 cd ~/Documents/wordle_solver_Fenitra_Josue
-
 bin/main
-
+```
 
 Suivre les instructions du jeu, taper un mot de 5 lettres puis taper sur la touche entree. Si la lettre est verte alors elle est bien placee si elle est orange alors la lettre est dans le mot mais mal positionnee sinon la lettre n'est pas dans le mot. Vous avez 6 essaies.
 
