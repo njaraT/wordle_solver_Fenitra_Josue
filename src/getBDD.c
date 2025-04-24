@@ -4,134 +4,87 @@
 #include<time.h>
 #include"getBDD.h"
 
+// Variables globales
+char listeMots[TOTAL_WORDS][MAX_WORD_LENGTH];
+char guess[MAX_WORD_LENGTH];
+int num_try = 0, is_victory = 0, randomIndex;
+char restart = ' ';
 
-void displayColorLetter(char* word, char* try)
-{
-	for(int i=0;i<MAX_WORD_LENGTH-1;i++)
-	{
-		if(try[i]=='v')
-		{
-			printf("\e[0;32m");
-			printf("%c ",word[i]);
-		}
-		else if(try[i]=='o')
-		{
-			printf("\e[0;33m");
-			printf("%c ",word[i]);
-		}
-		else
-		{
-			printf("\e[0m");
-			printf("%c ",word[i]);
-		}
-	}
-	printf("\e[0m");
-	printf("\n");
-}
-
-
-
-void generateBDD(char* input_file_name, char* output_file_name){
-	FILE* file=NULL;
-	FILE* output_file=NULL;
-	file=fopen(input_file_name,"r");
-	output_file=fopen(output_file_name,"w");
-	char line[MAX_LINE_LEN];
-	char tmpWord[6];
-		for(char letter='A';letter<='Z';letter++)
-		{
-			char str[35];
-			sprintf(str,"Wordle Words List Starting With %c\n",letter);
-			while(fgets(line, MAX_LINE_LEN,file)!=NULL)
-			{
-				if(!strcmp(str, line))
-				{
-					fgets(line, MAX_LINE_LEN,file);
-					fgets(line, MAX_LINE_LEN,file);
-
-					char* token=strtok(line," ");
-
-					while(token!=NULL)
-					{
-						if(strcmp(token,"\n"))
-						{
-							if(output_file!=NULL)
-								fprintf(output_file,"%s\n",token);
-							else
-								printf("no output file");
-						}
-						token=strtok(NULL," ");
-					}
-				}
-			}
-			
-			rewind(file);
-		}
-		fclose(file);
-		fclose(output_file);
-}
-
-void getWord(char* bddName, char words[TOTAL_WORDS][MAX_WORD_LENGTH]){
-	/*int randomIndex;
-	srand(time(NULL));
-	randomIndex=rand()%2310;*/
-	FILE* bdd_file=NULL;
-	bdd_file=fopen(bddName,"r");
-	if(bdd_file==NULL)
-	{
-		printf("not able to open File");
-		exit(0);
-	}
-	char word[MAX_WORD_LENGTH];
-	int numWord=0;
-	while(fgets(word,6,bdd_file)!=NULL && numWord<TOTAL_WORDS)
-	{
-		if (word[strlen(word) - 1] == '\n')
-		{
-            word[strlen(word) - 1] = '\0';
-        }
-    	if(strlen(word)>=MAX_WORD_LENGTH-1)
-    	{
-    		strcpy(words[numWord], word);
-    		numWord++;
-    	}
+void toLowerCase(char* str) {
+    for (int i = 0; str[i]; i++) {
+        str[i] = tolower(str[i]);
     }
 }
 
-int checkValidWord(char* word, char words[TOTAL_WORDS][MAX_WORD_LENGTH]){
-	for(int i=0;i<TOTAL_WORDS;i++)
-	{
-		if(!strcmp(word,words[i]))
-		{
-			return 1;
-		}
-	}
-	return 0;
+void displayColorLetter(char* word, char* try) {
+    for(int i = 0; i < MAX_WORD_LENGTH-1; i++) {
+        if(try[i] == 'v') {
+            printf("\e[0;32m");
+            printf("%c ", word[i]);
+        }
+        else if(try[i] == 'o') {
+            printf("\e[0;33m");
+            printf("%c ", word[i]);
+        }
+        else {
+            printf("\e[0m");
+            printf("%c ", word[i]);
+        }
+    }
+    printf("\e[0m\n");
 }
 
-void checkLetters(char* word,char* guess, char* try)
-{
-	int wordCount[26] = {0}; 
+void getWord(char* bddName, char words[TOTAL_WORDS][MAX_WORD_LENGTH]) {
+    FILE* bdd_file = fopen(bddName, "r");
+    if(bdd_file == NULL) {
+        printf("Impossible d'ouvrir le fichier %s\n", bddName);
+        exit(1);
+    }
+    
+    char word[MAX_WORD_LENGTH];
+    int numWord = 0;
+    
+    while(fgets(word, MAX_WORD_LENGTH, bdd_file) != NULL && numWord < TOTAL_WORDS) {
+        if (word[strlen(word) - 1] == '\n') {
+            word[strlen(word) - 1] = '\0';
+        }
+        if(strlen(word) == MAX_WORD_LENGTH-1) {
+            strcpy(words[numWord], word);
+            numWord++;
+        }
+    }
+    fclose(bdd_file);
+}
+
+int checkValidWord(char* word, char words[TOTAL_WORDS][MAX_WORD_LENGTH]) {
+    for(int i = 0; i < TOTAL_WORDS; i++) {
+        if(!strcmp(word, words[i])) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void checkLetters(char* word, char* guess, char* try) {
+    int wordCount[26] = {0}; 
     int guessCount[26] = {0};
 
     for (int i = 0; i < MAX_WORD_LENGTH - 1; i++) {
         wordCount[word[i] - 'a']++;
         guessCount[guess[i] - 'a']++;
     }
-	for(int i=0;i<MAX_WORD_LENGTH-1;i++)
-	{
-		if(word[i]==guess[i])
-		{
-			try[i]='v';
-			wordCount[word[i] - 'a']--; 
+    
+    for(int i = 0; i < MAX_WORD_LENGTH - 1; i++) {
+        if(word[i] == guess[i]) {
+            try[i] = 'v';
+            wordCount[word[i] - 'a']--; 
             guessCount[guess[i] - 'a']--; 
-		}
-	}
-	for (int i = 0; i < MAX_WORD_LENGTH - 1; i++) 
-	{
+        }
+    }
+    
+    for (int i = 0; i < MAX_WORD_LENGTH - 1; i++) {
         if (try[i] != 'v') { 
-            if (wordCount[guess[i] - 'a'] > 0) 
-            { 
+            if (wordCount[guess[i] - 'a'] > 0) { 
                 try[i] = 'o';
                 wordCount[guess[i] - 'a']--;
             }
@@ -141,7 +94,7 @@ void checkLetters(char* word,char* guess, char* try)
 
 void filterByIncludedLetters(char words[TOTAL_WORDS][MAX_WORD_LENGTH], char* included, int count) {
     for (int i = 0; i < TOTAL_WORDS; i++) {
-        if (words[i][0] == '\0') continue; // Skip already filtered words
+        if (words[i][0] == '\0') continue;
         
         int match = 1;
         for (int j = 0; j < count; j++) {
@@ -152,7 +105,7 @@ void filterByIncludedLetters(char words[TOTAL_WORDS][MAX_WORD_LENGTH], char* inc
         }
         
         if (!match) {
-            words[i][0] = '\0'; // Mark as filtered
+            words[i][0] = '\0';
         }
     }
 }
@@ -205,3 +158,74 @@ void displayFilteredWords(char words[TOTAL_WORDS][MAX_WORD_LENGTH]) {
     printf("\n\nTotal: %d mots possibles\n", count);
 }
 
+void applyFilters(char originalWords[TOTAL_WORDS][MAX_WORD_LENGTH]) {
+    char input[100];
+    char workingCopy[TOTAL_WORDS][MAX_WORD_LENGTH];
+    
+    for (int i = 0; i < TOTAL_WORDS; i++) {
+        strcpy(workingCopy[i], originalWords[i]);
+    }
+    
+    while (1) {
+        system("clear || cls");
+        displayFilteredWords(workingCopy);
+        
+        printf("\nOptions de filtre:\n");
+        printf("1. Inclure des lettres (doivent être présentes)\n");
+        printf("2. Exclure des lettres (ne doivent pas être présentes)\n");
+        printf("3. Lettre à une position spécifique\n");
+        printf("4. Sous-chaîne dans le mot\n");
+        printf("5. Réinitialiser les filtres\n");
+        printf("6. Quitter les filtres\n");
+        printf("Choix: ");
+        
+        int choice;
+        if (scanf("%d", &choice) != 1) {
+            while (getchar() != '\n');
+            continue;
+        }
+        
+        switch (choice) {
+            case 1: {
+                printf("Entrez les lettres à inclure (sans espaces): ");
+                scanf("%99s", input);
+                toLowerCase(input);
+                filterByIncludedLetters(workingCopy, input, strlen(input));
+                break;
+            }
+            case 2: {
+                printf("Entrez les lettres à exclure (sans espaces): ");
+                scanf("%99s", input);
+                toLowerCase(input);
+                filterByExcludedLetters(workingCopy, input, strlen(input));
+                break;
+            }
+            case 3: {
+                printf("Entrez la lettre et la position (ex: a1): ");
+                scanf("%99s", input);
+                toLowerCase(input);
+                if (strlen(input) >= 2 && isalpha(input[0]) && isdigit(input[1])) {
+                    filterByLetterPosition(workingCopy, input[0], input[1] - '0');
+                }
+                break;
+            }
+            case 4: {
+                printf("Entrez la sous-chaîne à rechercher: ");
+                scanf("%99s", input);
+                toLowerCase(input);
+                filterBySubstring(workingCopy, input);
+                break;
+            }
+            case 5: {
+                for (int i = 0; i < TOTAL_WORDS; i++) {
+                    strcpy(workingCopy[i], originalWords[i]);
+                }
+                break;
+            }
+            case 6: 
+                return;
+            default: 
+                printf("Choix invalide.\n");
+        }
+    }
+}
